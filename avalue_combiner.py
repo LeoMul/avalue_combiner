@@ -151,7 +151,10 @@ def readin_until_finds_aij(file):
 
     electric_data = np.loadtxt(file,usecols=[0,1,2,3],skiprows=first_line_with_aij_index_electric,max_rows=last_line_electric-first_line_with_aij_index_electric)
     magnetic_data = np.loadtxt(file,usecols=[0,1,2,3],skiprows=first_line_with_aij_index_magnetic,max_rows=last_line_magnetic-first_line_with_aij_index_magnetic)
-    return electric_data,magnetic_data,found_array
+    num_levels_1 = max(electric_data[:,1])
+    num_levels_2 = max(magnetic_data[:,1])
+    #print(num_levels_1,num_levels_2)
+    return electric_data,magnetic_data,found_array,int(max(num_levels_1,num_levels_2))
 
 #def globbingfiles(globstring):
 #    files = []
@@ -175,16 +178,27 @@ parser.add_argument('-n', '--name',  help='Specify desired file name. Leave blan
 parser.add_argument('-d', '--datafiles', nargs='+', help='Paths of input files. Multiple files put a space between them.')
 parser.add_argument('-r', '--reorder', help='Path of reorder file - i.e translates unshifted state indices to their shifted ')
 args = parser.parse_args()
-num_levels = 40
+#num_levels = 40
 
 def main(output_file_name):
-    transition_matrix = np.zeros([num_levels,num_levels])
     found_array = []
+    found_num_levels = []
+    obtained_transition_arrays = []
+
+
     for file in input_array:
-        electric,magnetic,found = readin_until_finds_aij(file)
+        electric,magnetic,found,num_levels = readin_until_finds_aij(file)
+        found_num_levels.append(num_levels)
+        obtained_transition_arrays.append(electric)
+        obtained_transition_arrays.append(magnetic)
         found_array += (found)
-        transition_matrix = add_transition_matrix(transition_matrix,electric)
-        transition_matrix = add_transition_matrix(transition_matrix,magnetic)
+    num_levels = max(found_num_levels)
+    print("I think the number of levels is",num_levels)
+
+    transition_matrix = np.zeros([num_levels,num_levels])
+    for matrix in obtained_transition_arrays:
+        transition_matrix = add_transition_matrix(transition_matrix,matrix)
+
     transition_matrix = finalise(transition_matrix)
     
     
