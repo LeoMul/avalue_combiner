@@ -2,21 +2,25 @@
 #rn - reads in from files e1, e2, e3 etc. howver will eventually make it grasp.outs
 import numpy as np
 num_levels = 40
-#print(e1_raw) 
+path1 = 'GRASP.OUT'
 transition_matrix = np.zeros([num_levels,num_levels])
+input_array = [path1]
 
-def readin_and_add(transition_matrix,filepath):
-    raw = np.loadtxt(filepath,usecols=[0,1,2,3])
-    lower = raw[:,0].astype(int) - 1 #subtracting as python is 0 indexed, god save us
-    upper = raw[:,1].astype(int) - 1
-    avalues = raw[:,3]
+
+def add_transition_matrix(transition_matrix_old,new_data):
+    #new data = from readin functions
+    #transition_matrix_old = currently read in and processed data.
+
+    lower = new_data[:,0].astype(int) - 1 #subtracting as python is 0 indexed, god save us
+    upper = new_data[:,1].astype(int) - 1
+    avalues = new_data[:,3]
 
     for kk in range(0,len(avalues)):
         i = lower[kk]
         j = upper[kk] 
         avalue = avalues[kk]
-        transition_matrix[i,j]+= avalue
-    return transition_matrix 
+        transition_matrix_old[i,j]+= avalue
+    return transition_matrix_old
 
 def finalise(transition_matrix):
     si = np.shape(transition_matrix)
@@ -28,7 +32,8 @@ def finalise(transition_matrix):
 
 def output(transition_matrix,output_file,num_levels):
     #f = open(output_file,'w')
-
+    print("Outputing:")
+    print("Upper Lower A Value")
     for ii in range(0,num_levels):
         for jj in range(ii+1,num_levels):
             lower = ii+1#python is 0 indexed. god save us.
@@ -46,12 +51,80 @@ def output(transition_matrix,output_file,num_levels):
 
 
     return 0
+def readin_until_finds_aij(file):
+    
+    #this function reads in a data file of path 'file' and outputs any electric AND
+    #magnetic transitions it finds.
+    #it reads in the file iwht the regular python api and locates the positions of the data.
+    #these positions are then re-read in by numpy with the data straight into ndarrays.
+    #while this isn't particularly elegant - it is the least amount of work and less error prone 
+    #than converting the data myself.
 
-transition_matrix = readin_and_add(transition_matrix,'e1') 
-#output(transition_matrix,'we',num_levels=10)
-transition_matrix = readin_and_add(transition_matrix,'e2') 
-#output(transition_matrix,'we',num_levels=10)
-transition_matrix = readin_and_add(transition_matrix,'m1') 
-transition_matrix = readin_and_add(transition_matrix,'m2') 
-transition_matrix = finalise(transition_matrix)
-output(transition_matrix,'we',num_levels=10)
+    f = open(file,'r')
+    content = f.readlines()
+    numlines = len(content)
+    print("Length of file ", file, "is ",numlines)
+
+    for i in range(0,numlines):
+        current_line = content[i]
+        current_line_list = current_line.split()
+        if current_line_list != []: 
+            if current_line_list[0] == "Electric":
+                print("found electric")
+                print(current_line)
+                break
+    if i >= (numlines-1): 
+        print("no Electric transitions found, check input")
+        return
+    first_line_with_aij_index_electric = i + 12
+    last_line_electric = first_line_with_aij_index_electric
+    for j in range(first_line_with_aij_index_electric,numlines):
+        if content[j].split() != []:
+            last_line_electric+=1 
+        else:
+            break 
+    #print(last_line_electric)
+
+    print("Electric data begins at ",first_line_with_aij_index_electric," and ends at ",last_line_electric)
+
+    for i in range(last_line_electric,numlines):
+        current_line = content[i]
+        current_line_list = current_line.split()
+        if current_line_list != []: 
+            if current_line_list[0] == "Magnetic":
+                print("found magnetic")
+                print(current_line)
+                break
+    if i >= (numlines-1): 
+        print("no magnetic transitions found, check input")
+        return 
+    first_line_with_aij_index_magnetic = i + 12
+    last_line_magnetic = first_line_with_aij_index_magnetic
+    for j in range(first_line_with_aij_index_magnetic,numlines):
+        if content[j].split() != []:
+            last_line_magnetic+=1 
+        else:
+            break 
+    #print(last_line_magnetic)
+
+    print("Magnetic data begins at ",first_line_with_aij_index_magnetic," and ends at ",last_line_magnetic)
+    f.close()
+
+    electric_data = np.loadtxt(file,usecols=[0,1,2,3],skiprows=first_line_with_aij_index_electric,max_rows=last_line_electric-first_line_with_aij_index_electric)
+    magnetic_data = np.loadtxt(file,usecols=[0,1,2,3],skiprows=first_line_with_aij_index_magnetic,max_rows=last_line_magnetic-first_line_with_aij_index_magnetic)
+    return electric_data,magnetic_data
+
+
+def main():
+
+    for file in input_array:
+
+        electric,magnetic = readin_until_finds_aij(file)
+        transition_matrix = add_transition_matrix(transition_matrix,electric)
+        transition_matrix = add_transition_matrix(transition_matrix,magnetic)
+
+    transition_matrix = finalise(transition_matrix)
+
+    output(transition_matrix,'we',num_levels=10) 
+
+main()
