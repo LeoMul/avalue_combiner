@@ -55,6 +55,7 @@ def reorder(transition_matrix,new_order_file):
             old_j = old_levels[jj]
             new_i = new_levels[ii]
             new_j = new_levels[jj]
+            #print(ii,jj,new_i,new_j)
             new_transition_matrix[new_i,new_j] = transition_matrix[old_i,old_j]
 
     return new_transition_matrix
@@ -174,6 +175,7 @@ def manualdatafiles(datafiles):
 parser = argparse.ArgumentParser()
 # Adding optional argument
 parser.add_argument('-n', '--name',  help='Specify desired file name. Leave blank for default: MERGED_A_VALUES.OUT')
+parser.add_argument('-l', '--levels',  help='max level of output transitions, is the number of found levels by default (untested)')
 #parser.add_argument('-g', '--globbing',  help='Selects datafiles by globbing')
 parser.add_argument('-d', '--datafiles', nargs='+', help='Paths of input files. Multiple files put a space between them.')
 parser.add_argument('-r', '--reorder', help='Path of reorder file - i.e translates unshifted state indices to their shifted ')
@@ -211,6 +213,13 @@ def main(output_file_name):
         if args.reorder:
             print("REORDERING LEVELS ACCORDING TO INPUT FILE ",args.reorder)
             transition_matrix = reorder(transition_matrix,args.reorder)
+        if args.levels:
+            if int(args.levels) > num_levels:
+                print("too many levels requested, printing default = ",num_levels)
+            else:
+                
+                print("truncating original",num_levels,"levels to ",int(args.levels),"levels")
+                num_levels = int(args.levels)
 
         output(transition_matrix,output_file_name,num_levels=num_levels) 
 
