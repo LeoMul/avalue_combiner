@@ -22,8 +22,8 @@ def add_transition_matrix(transition_matrix_old,new_data):
 
 def finalise(transition_matrix):
     si = np.shape(transition_matrix)
-    
-    transition_matrix = transition_matrix + np.transpose(transition_matrix.transpose)
+
+    transition_matrix = transition_matrix + np.transpose(transition_matrix)
     transition_matrix *= 0.5
 
     for jj in range(0,si[0]):
