@@ -22,6 +22,10 @@ def add_transition_matrix(transition_matrix_old,new_data):
 
 def finalise(transition_matrix):
     si = np.shape(transition_matrix)
+    
+    transition_matrix = transition_matrix + np.transpose(transition_matrix.transpose)
+    transition_matrix *= 0.5
+
     for jj in range(0,si[0]):
         for ii in range(0,si[1]):
             if transition_matrix[jj,ii] == 0.0:
@@ -60,10 +64,16 @@ def reorder(transition_matrix,new_order_file):
 
     return new_transition_matrix
 
-def output(transition_matrix,output_file,num_levels):
+def output(transition_matrix,output_file,num_levels,exp_energies):
     f = open(output_file,'w')
     print("Writing to ",output_file)
-    f.write("#Upper Lower A Value\n")
+
+    header = "#Upp  Low  AVal      "
+
+    if len(exp_energies) != 0 :
+        header = header + 'UpperWN  UppJ   LowerWN  LowJ       WLnm'
+
+    f.write(header+"\n")
     for ii in range(0,num_levels):
         for jj in range(ii+1,num_levels):
             lower = ii+1#python is 0 indexed, but we are 1-indexed
@@ -78,7 +88,21 @@ def output(transition_matrix,output_file,num_levels):
             string_to_be_written += '{:}'.format(" ")
             avalue_string = '{:.2E}'.format(avalue)
             avalue_string = avalue_string.replace("E","")
-            string_to_be_written += avalue_string +"\n"
+            string_to_be_written += avalue_string 
+
+            if len(exp_energies) != 0:
+                energy_string = '{:10}'.format(exp_energies[jj,0])
+                energy_string += " "+'{:5}'.format(exp_energies[jj,1])
+
+                energy_string += '{:10}'.format(exp_energies[ii,0])
+                energy_string += " "+'{:5}'.format(exp_energies[ii,1])
+
+                wavelength = 1e7 / np.abs(exp_energies[ii,0]-exp_energies[jj,0])
+                energy_string += " "+'{:10}'.format(round(wavelength,4))
+                 
+                string_to_be_written += energy_string
+                
+            string_to_be_written += "\n"
             f.write(string_to_be_written    )
 
 
@@ -179,6 +203,8 @@ parser.add_argument('-l', '--levels',  help='max level of output transitions, is
 #parser.add_argument('-g', '--globbing',  help='Selects datafiles by globbing')
 parser.add_argument('-d', '--datafiles', nargs='+', help='Paths of input files. Multiple files put a space between them.')
 parser.add_argument('-r', '--reorder', help='Path of reorder file - i.e translates unshifted state indices to their shifted ')
+parser.add_argument('-e', '--energies', help='Path of energies (in exp. order for now, i might change this) ')
+
 args = parser.parse_args()
 #num_levels = 40
 
@@ -220,8 +246,12 @@ def main(output_file_name):
                 
                 print("truncating original",num_levels,"levels to ",int(args.levels),"levels")
                 num_levels = int(args.levels)
+        if args.energies:
+            exp_energies = np.loadtxt(args.energies)
+        else:
+            exp_energies = []
 
-        output(transition_matrix,output_file_name,num_levels=num_levels) 
+        output(transition_matrix,output_file_name,num_levels=num_levels,exp_energies =exp_energies) 
 
 
 
