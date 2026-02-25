@@ -62,7 +62,7 @@ def reorder(transition_matrix,new_order_file,dd1=np.array([]),dd2=np.array([])):
         print('will need to use old levels new levels here')
         old_levels = dd1 
         new_levels = dd2 
-        print(new_levels[71],old_levels[71])
+        #print(new_levels[71],old_levels[71])
         
     #print(old_levels)
     num = len(old_levels)
@@ -164,9 +164,11 @@ def readin_until_finds_aij(file):
             i+=1 
         i = 0
         return nelec
-            
-    nelec = getNelec()    
-        
+    try:
+        nelec = getNelec()    
+    except: 
+        print('failed getting nelec - not important for avalues, moving on')
+        nelec = 0
                 
     for i in range(0,numlines):
         current_line = content[i]
@@ -325,11 +327,13 @@ def main(output_file_name):
         if args.energies:
             shift = np.loadtxt(args.energies)
             arg = np.argsort(shift)
+            for ii in range(0,len(arg)):
+                print(ii+1,arg[ii]+1)
             #print(shift[arg])
             #print(arg)
-            #ol = np.arange(0,len(arg),1,dtype=int)
+            ol = np.arange(0,len(arg),1,dtype=int)
             #print("REORDERING LEVELS ACCORDING TO INPUT FILE ")
-            #transition_matrix = reorder(transition_matrix,args.reorder,arg,ol)
+            transition_matrix = reorder(transition_matrix,args.reorder,arg,ol)
             
             #print(len(ol))
             
