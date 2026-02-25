@@ -5,7 +5,7 @@
 import numpy as np
 import argparse
 
-from vr_lib import * 
+#from vr_lib import * 
 
 
 elements=['H ','He','Li','Be','B ','C ','N ','O ','F ','Ne','Na','Mg'
@@ -16,10 +16,6 @@ elements=['H ','He','Li','Be','B ','C ','N ','O ','F ','Ne','Na','Mg'
         ,'Tb','Dy','Ho','Er','Tm','Yb','Lu','Hf','Ta','W ','Re','Os','Ir'
         ,'Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th'
         ,'Pa','U ']
-
-
-AXELROD_CONST_FOR_NOW = 0.004 
-RYDBERG_CONSTANT_CM = 109737.316
 
 
 def add_transition_matrix(transition_matrix_old,new_data):
@@ -284,164 +280,7 @@ parser.add_argument('-r', '--reorder', help='Path of reorder file - i.e translat
 parser.add_argument('-e', '--energies', help='Path of energies (in exp. order for now, i might change this) ')
 
 args = parser.parse_args()
-#num_levels = 40
-def writeadf04(level_data,avalues,max_n,levels_found,charge,nelec,args=np.array([]),shifted=np.array([])):
-    from pathlib import Path
-    ROOT_DIR = Path(__file__).parent
-    TEXT_FILE = ROOT_DIR / 'ion_energy.dat'
-    ip = np.loadtxt(TEXT_FILE)
-    TEXT_FILE_terms = ROOT_DIR / 'ion_terms.dat'
-    tt = np.loadtxt(TEXT_FILE_terms,dtype='>U2')
-    ion_stage_index = charge - nelec 
-    atomic_number_index = charge - 1 
-    ion_pot = ip[ion_stage_index,atomic_number_index]
-    ion_term = tt[ion_stage_index,atomic_number_index]
-    
-    g = open('adf04.vr.axel.dat','w')
-    g.write('{:2}+{:2}        {:2}        {:2}    {:11.1f}.({:2})\n'.format(
-        elements[charge-1],
-        charge-nelec,
-        charge,
-        charge-nelec,
-        ion_pot,
-        ion_term
-    ))
-    
-    nlevels = len(level_data[:,0])
-    max_n = min(levels_found,max_n,nlevels)
-    #print(levels_found,max_n,nlevels)
-    parities    = np.ones(nlevels)
-    statweights = np.zeros_like(parities)
-    temps = np.array([1.00E+03, 
-                      1.50E+03, 
-                      1.80E+03, 
-                      2.00E+03, 
-                      2.50E+03, 
-                      5.00E+03, 
-                      7.50E+03, 
-                      1.00E+04, 
-                      1.50E+04, 
-                      1.80E+04, 
-                      2.00E+04, 
-                      3.00E+04, 
-                      4.00E+04, 
-                      5.00E+04, 
-                      6.00E+04, 
-                      7.00E+04, 
-                      8.00E+04, 
-                      9.00E+04, 
-                      1.00E+05])
-    temps = 10 ** np.linspace(2,6,19)
-    
-    ups = np.ones_like(temps)
-    
-    if len(shifted)>0:
-        for jj in range(0,len(shifted)):
-            level_data[jj,-1] = float(shifted[jj])
-    
-    if len(args > 0):
-        level_data = level_data[args,:]
-    print(level_data)
-        
-        
-    
-    
-    for jj in range(0,levels_found):
-        
-        jvalue = level_data[jj,1]
-        #print(len(level_data[:,1]))
-        if ((len(jvalue) >2)  and (jvalue[-2] == '/')):
-            statweights[jj] = float (jvalue[0:-2]) + 1
-        else:
-            statweights[jj] = 2.0 * float (jvalue) + 1
-        
-        parity = level_data[jj,2]
-        
-        if parity == 'odd':
-            parities[jj] = -1.0 
-        elif parity != 'even':
-            print('parity error in level ',jj)
-        
-    form = '{:3} Level{:3} (0)0({:4.1f}) {:13.4f}\n';
-    
-    for ii in range(0,levels_found):
-        en = float(level_data[ii,-1])
-        en *= RYDBERG_CM
-        g.write(form.format(ii+1,
-                            ii+1,
-                            (statweights[ii]-1)*0.5,
-                            en)) 
-        
-    firstPart = '{:5}{:5} {:7.2e}'
-    middle = ' {:7.2e}'
-    end = '{}{:7.2e}\n'
-    
-    
-    
-    g.write('   -1\n')
-    temperature_header = ' 3.00    3'
-    temperature_header += ' '*8
-    for ii in range(0,len(temps)):
-        temperature_header += middle.format(temps[ii])
-    temperature_header+= '\n'
-    temperature_header=temperature_header.replace('e','')
-    #print(temperature_header)
-    g.write(temperature_header)
-    for ii in range(0,levels_found):
 
-        for jj in range(0,ii):
-            stringgg = ''
-            allowed = True 
-            
-            weightdiff = abs(statweights[ii] - statweights[jj])
-            paritydiff = parities[jj] * parities[ii]
-            
-            parallowed = paritydiff == -1.0 
-            angallowed = (weightdiff == 0.0) or (weightdiff == 2.0)
-            notzerozero   = not ( (statweights[ii] == 1.0) and (statweights[jj] == 1.0) )
-
-            if (not notzerozero): 
-                allowed = False 
-            else:
-                if (not angallowed):
-                    allowed = False
-                else:
-                    paritydiff = parities[jj] * parities[ii]
-                    if (paritydiff != -1.0):
-                        allowed = False 
-            inf = 0
-            if allowed:
-                wl = abs( float(level_data[ii,-1]) -  float(level_data[jj,-1]))  * RYDBERG_CONSTANT_CM 
-                wl = 1e7/wl #nm 
-                ups[:] = van_regemorter_single_ionised(
-                    temps,
-                    abs( float(level_data[ii,-1]) -  float(level_data[jj,-1])),
-                    statweights[ii],
-                    avalues[ii,jj]
-                    )
-                
-                #inf = avalues[ii,jj]
-                inf = 4 * wl**3 * statweights[ii] * avalues[ii,jj]
-                inf /= 3*2.03e15
-                #print('vr')
-                marker='-'
-            else:
-                inf = 0 
-                marker = ' '
-                ups[:] = AXELROD_CONST_FOR_NOW * statweights[ii] * statweights[jj]
-            
-            for kk in range(0,len(temps)):
-                stringgg += middle.format(ups[kk])
-            
-            g.write(
-                 ( firstPart.format(ii+1,jj+1,avalues[ii,jj]) + stringgg + end.format(marker,inf)).replace('e','')
-                )
-    g.write('  -1\n')
-    g.write('  -1  -1\n')
-    g.write('C generated by Leo Patick Mulhollands GraspToVRAcode')
-    g.close()
-    
-    return 0 
 
 def main(output_file_name):
     found_array = []
@@ -497,7 +336,7 @@ def main(output_file_name):
         else:
             exp_energies = []
         #print(level_data)
-        writeadf04(level_data,transition_matrix,30,num_levels,atomicnumber,nelec,arg,shift)
+        #writeadf04(level_data,transition_matrix,30,num_levels,atomicnumber,nelec,arg,shift)
 
         output(transition_matrix,output_file_name,num_levels=num_levels,exp_energies =exp_energies) 
 
