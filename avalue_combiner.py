@@ -327,8 +327,16 @@ def main(output_file_name):
         if args.energies:
             shift = np.loadtxt(args.energies)
             arg = np.argsort(shift)
+            
+            #argsorting on these energies gives the 'old' indices, and then np.arange(0,numlevels,1) will be the corresponding 'new' indices.
+            
+            gg = open('shiftingDebug.dat','w')
+            gg.write('I am making the following index change:\n')
+            tt = np.argsort(arg)
             for ii in range(0,len(arg)):
-                print(ii+1,arg[ii]+1)
+                #print(ii+1,arg[ii]+1)
+                gg.write(f'Level {ii+1:5} --> {tt[ii]+1:5}\n')
+            gg.close()
             #print(shift[arg])
             #print(arg)
             ol = np.arange(0,len(arg),1,dtype=int)
